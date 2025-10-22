@@ -1,0 +1,76 @@
+name: Daily Outage Data ETL
+
+on:
+  # Run daily at 6:00 AM UTC (adjust timezone as needed)
+  schedule:
+    - cron: '0 6 * * *'  # 6 AM UTC daily
+  
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Target date (YYYY-MM-DD) - leave empty for yesterday'
+        required: false
+        type: string
+
+jobs:
+  daily-etl:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests psycopg2-binary
+    
+    - name: Calculate target date
+      id: date
+      run: |
+        if [ -n "${{ github.event.inputs.target_date }}" ]; then
+          TARGET_DATE="${{ github.event.inputs.target_date }}"
+        else
+          # Calculate yesterday's date
+          TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
+        fi
+        echo "target_date=$TARGET_DATE" >> $GITHUB_OUTPUT
+        echo "Processing data for: $TARGET_DATE"
+    
+    - name: Run Daily ETL
+      env:
+        # Database credentials from GitHub Secrets
+        DB_HOST: ${{ secrets.DB_HOST }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_PORT: ${{ secrets.DB_PORT }}
+        
+        # Zoho API credentials from GitHub Secrets
+        ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+        ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+        ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+        
+        # Target date
+        TARGET_DATE: ${{ steps.date.outputs.target_date }}
+      run: |
+        echo "🚀 Starting Daily ETL for $TARGET_DATE"
+        python daily_etl.py $TARGET_DATE
+    
+    - name: Send notification on failure
+      if: failure()
+      run: |
+        echo "❌ Daily ETL failed for ${{ steps.date.outputs.target_date }}"
+        # You can add Slack/email notification here if needed
+    
+    - name: Send notification on success
+      if: success()
+      run: |
+        echo "✅ Daily ETL completed successfully for ${{ steps.date.outputs.target_date }}"
+        # You can add Slack/email notification here if needed
