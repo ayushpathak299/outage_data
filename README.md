@@ -6,7 +6,7 @@ This repository contains ETL scripts to fetch outage data from Site24x7 API and 
 
 - `daily_etl.py` - Daily ETL script for previous day's data
 - `main_bulk_etl.py` - Bulk ETL script for historical data ranges
-- `.github/workflows/daily-etl.yml` - GitHub Actions workflow for daily automation
+- `.github/workflows/daily_etl.yml` - GitHub Actions workflow for daily automation
 
 ## Setup GitHub Actions
 
@@ -28,7 +28,8 @@ Go to your repository → Settings → Secrets and variables → Actions, and ad
 
 ### 2. Schedule
 
-The workflow runs automatically daily at 6:00 AM UTC. It processes the previous day's outage data.
+The workflow runs automatically daily at 2:00 AM UTC. It processes the previous day's outage data.
+You can adjust the schedule by editing the cron expression in `.github/workflows/daily_etl.yml`.
 
 ### 3. Manual Trigger
 
